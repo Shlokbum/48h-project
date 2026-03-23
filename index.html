@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="48H Project — Mobile-first productivity app. Organise epics and tasks in a 48-hour sprint with a hard WIP limit." />
+  <title>48H Project</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ============================================================
+       48H PROJECT — Kinetic Blueprint Design System
+       ============================================================ */
+    :root {
+      --bg:          #131313;
+      --surface:     #1f1f1f;
+      --surface-hi:  #2a2a2a;
+      --surface-top: #353535;
+      --text:        #e2e2e2;
+      --text-dim:    #c6c6c6;
+      --outline:     #919191;
+      --outline-dim: #474747;
+      --blue:        #004ee8;
+      --blue-dim:    #003ab3;
+      --red:         #c00000;
+      --red-dim:     #93000a;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    button { cursor: pointer; border: none; background: none; font-family: inherit; color: inherit; }
+    input, textarea, select { font-family: inherit; color: inherit; }
+
+    /* WIP Flash */
+    body.wip-flash { animation: wip-flash-anim 0.6s linear; }
+    @keyframes wip-flash-anim {
+      0%   { background-color: var(--bg); }
+      15%  { background-color: var(--red-dim); }
+      60%  { background-color: var(--red-dim); }
+      100% { background-color: var(--bg); }
+    }
+
+    /* App Shell */
+    .app-root {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      max-width: 430px;
+      margin: 0 auto;
+      position: relative;
+    }
+    .main-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding-bottom: 5rem; }
+
+    /* Status Ticker */
+    .status-ticker {
+      background: var(--surface-top);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid var(--outline-dim);
+      flex-shrink: 0;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .ticker-label { font-size: 0.625rem; font-weight: 700; letter-spacing: 0.12em; color: var(--text-dim); text-transform: uppercase; }
+    .ticker-wip { font-size: 0.625rem; font-weight: 700; letter-spacing: 0.1em; color: var(--text-dim); display: flex; align-items: center; gap: 0.4rem; }
+    .ticker-wip.full { color: var(--red); }
+    .ticker-full-badge { background: var(--red); color: #fff; font-size: 0.5rem; font-weight: 800; letter-spacing: 0.1em; padding: 0.1rem 0.35rem; }
+
+    /* Bottom Nav */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 430px;
+      display: flex;
+      background: var(--surface);
+      border-top: 1px solid var(--outline-dim);
+      z-index: 20;
+    }
+    .nav-tab {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0.65rem 0.5rem;
+      gap: 0.2rem;
+      color: var(--text-dim);
+      min-height: 56px;
+      border-radius: 0;
+      border-top: 2px solid transparent;
+      transition: color 0.15s linear;
+    }
+    .nav-tab.active { color: var(--blue); border-top-color: var(--blue); }
+    .nav-icon { width: 20px; height: 20px; }
+    .nav-label { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+
+    /* View Layout */
+    .view { padding: 1.25rem 1rem; min-height: 100%; position: relative; }
+    .view-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--outline-dim);
+      padding-bottom: 0.75rem;
+    }
+    .view-title { font-size: 1.75rem; font-weight: 800; letter-spacing: -0.03em; color: var(--text); line-height: 1; }
+    .view-count { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em; color: var(--text-dim); text-transform: uppercase; }
+
+    /* Empty State */
+    .empty-state { text-align: center; padding: 3rem 1.5rem; }
+    .empty-state__title { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; color: var(--text-dim); margin-bottom: 0.5rem; }
+    .empty-state__sub { font-size: 0.75rem; line-height: 1.6; color: var(--outline); }
+
+    /* FAB */
+    .fab {
+      position: fixed;
+      bottom: 5rem;
+      right: max(1rem, calc(50% - 205px));
+      width: 52px;
+      height: 52px;
+      background: var(--blue);
+      color: #fff;
+      font-size: 1.5rem;
+      font-weight: 300;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      z-index: 15;
+      transition: background 0.15s linear;
+    }
+    .fab:hover { background: var(--blue-dim); }
+
+    /* Epic List */
+    .epic-list { display: flex; flex-direction: column; gap: 1px; background: var(--outline-dim); border: 1px solid var(--outline-dim); }
+    .epic-card {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.9rem 1rem;
+      background: var(--surface);
+      transition: background 0.1s linear;
+      min-height: 60px;
+    }
+    .epic-card:hover { background: var(--surface-hi); }
+    .epic-color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .epic-card__content { flex: 1; display: flex; flex-direction: column; gap: 0.15rem; }
+    .epic-card__name { font-size: 0.95rem; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
+    .epic-card__meta { font-size: 0.55rem; font-weight: 700; letter-spacing: 0.12em; color: var(--text-dim); }
+    .epic-card__badge { display: flex; flex-direction: column; align-items: center; }
+    .epic-badge { font-size: 1.1rem; font-weight: 800; color: var(--text); line-height: 1; }
+    .epic-badge-label { font-size: 0.5rem; font-weight: 700; letter-spacing: 0.08em; color: var(--text-dim); text-transform: uppercase; }
+
+    /* Kanban */
+    .kanban-board {
+      display: flex;
+      gap: 1px;
+      overflow-x: auto;
+      background: var(--outline-dim);
+      border: 1px solid var(--outline-dim);
+      min-height: calc(100dvh - 16rem);
+      -webkit-overflow-scrolling: touch;
+    }
+    .kanban-col { flex: 0 0 78vw; max-width: 300px; min-width: 240px; background: var(--bg); display: flex; flex-direction: column; }
+    .kanban-col.is-full { background: #130a0a; }
+    .kanban-col__header {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.65rem 0.85rem;
+      background: var(--surface);
+      border-bottom: 1px solid var(--outline-dim);
+    }
+    .kanban-col__label { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; color: var(--text-dim); flex: 1; }
+    .kanban-col__count { font-size: 0.7rem; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+    .kanban-full-badge { font-size: 0.5rem; font-weight: 800; letter-spacing: 0.1em; color: var(--red); border: 1px solid var(--red); padding: 0.1rem 0.3rem; }
+    .kanban-empty { padding: 1.5rem 0.85rem; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.1em; color: var(--outline-dim); }
+    .task-list { display: flex; flex-direction: column; gap: 1px; background: var(--outline-dim); flex: 1; }
+
+    /* Task Card */
+    .task-card { background: var(--surface); padding: 0.85rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .task-card.done { background: var(--surface-top); opacity: 0.7; }
+    .task-card:hover:not(.done) { background: var(--surface-hi); }
+    .task-card__header { display: flex; align-items: center; gap: 0.4rem; }
+    .task-epic-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .task-epic-name { font-size: 0.55rem; font-weight: 600; letter-spacing: 0.08em; color: var(--text-dim); flex: 1; text-transform: uppercase; }
+    .task-status-pill { font-size: 0.5rem; font-weight: 700; letter-spacing: 0.1em; padding: 0.15rem 0.4rem; border: 1px solid currentColor; }
+    .pill-to-be-picked { color: var(--text-dim); }
+    .pill-wip { color: var(--blue); }
+    .pill-done { color: var(--outline); }
+    .task-title { font-size: 0.875rem; font-weight: 600; color: var(--text); line-height: 1.4; letter-spacing: -0.01em; }
+    .task-title.done { text-decoration: line-through; color: var(--text-dim); }
+    .task-dod { font-size: 0.7rem; color: var(--text-dim); line-height: 1.5; }
+    .task-dod-label { font-weight: 700; font-size: 0.6rem; letter-spacing: 0.08em; color: var(--outline); }
+    .task-date { font-size: 0.55rem; font-weight: 600; letter-spacing: 0.08em; color: var(--outline); text-transform: uppercase; font-variant-numeric: tabular-nums; }
+    .task-advance-btn {
+      align-self: flex-start;
+      margin-top: 0.4rem;
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--blue);
+      padding: 0.35rem 0.6rem;
+      border: 1px solid var(--blue);
+      transition: background 0.1s linear, color 0.1s linear;
+      min-height: 32px;
+    }
+    .task-advance-btn:hover { background: var(--blue); color: #fff; }
+
+    /* WIP Blocker */
+    .wip-blocker {
+      position: fixed;
+      inset: 0;
+      background: var(--red-dim);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: wip-blocker-out 0.6s linear forwards;
+    }
+    @keyframes wip-blocker-out { 0% { opacity:1; } 70% { opacity:1; } 100% { opacity:0; pointer-events:none; } }
+    .wip-blocker__inner { text-align: center; padding: 2rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .wip-blocker__title { font-size: 3.5rem; font-weight: 800; letter-spacing: -0.04em; color: #fff; line-height: 1; }
+    .wip-blocker__subtitle { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.15em; color: #ffb4ab; }
+    .wip-blocker__rule { font-size: 0.6rem; font-weight: 500; letter-spacing: 0.08em; color: #ffb4ab; opacity: 0.7; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      display: flex; align-items: flex-end; justify-content: center;
+    }
+    .modal-sheet {
+      background: var(--surface);
+      width: 100%;
+      max-width: 430px;
+      border-top: 2px solid var(--outline-dim);
+      padding: 1.25rem 1.25rem 2.5rem;
+      max-height: 90dvh;
+      overflow-y: auto;
+      animation: sheet-up 0.2s linear;
+    }
+    @keyframes sheet-up { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem; }
+    .modal-tag { font-size: 0.65rem; font-weight: 800; letter-spacing: 0.15em; color: var(--text); border: 1px solid var(--outline-dim); padding: 0.2rem 0.5rem; }
+    .modal-close { font-size: 1rem; color: var(--text-dim); width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
+    .modal-subtitle { font-size: 0.7rem; color: var(--outline); margin-bottom: 1.25rem; line-height: 1.5; }
+    .modal-form { display: flex; flex-direction: column; }
+    .field-label { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; color: var(--text-dim); margin-bottom: 0.4rem; display: block; }
+    .field-mt { margin-top: 1.25rem; }
+    .field-input {
+      background: var(--surface-hi);
+      border: none;
+      border-bottom: 1px solid var(--outline-dim);
+      color: var(--text);
+      padding: 0.75rem;
+      font-size: 0.9rem;
+      width: 100%;
+      outline: none;
+      border-radius: 0;
+      transition: border-color 0.15s linear;
+    }
+    .field-input:focus { border-bottom: 2px solid var(--blue); }
+    .field-input.error { border-bottom: 2px solid var(--red); }
+    textarea.field-input { resize: vertical; min-height: 5rem; }
+    select.field-input { appearance: none; cursor: pointer; }
+    .field-error { font-size: 0.65rem; color: var(--red); font-weight: 600; letter-spacing: 0.05em; margin-top: 0.25rem; }
+    .color-swatches { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.25rem; }
+    .swatch { width: 36px; height: 36px; border-radius: 50%; border: 2px solid transparent; flex-shrink: 0; transition: transform 0.1s linear; cursor: pointer; }
+    .swatch.selected { border-color: var(--text); transform: scale(1.15); }
+    .btn-primary {
+      margin-top: 1.75rem;
+      background: var(--blue);
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      padding: 0.9rem 1.3rem;
+      width: 100%;
+      border-radius: 0;
+      transition: background 0.1s linear;
+      min-height: 48px;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--blue-dim); }
+    .btn-primary:disabled { background: var(--surface-top); color: var(--outline); cursor: not-allowed; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--outline-dim); }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React 18 + Babel (JSX) via CDN -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "react":     "https://esm.sh/react@18",
+        "react-dom": "https://esm.sh/react-dom@18",
+        "react-dom/client": "https://esm.sh/react-dom@18/client"
+      }
+    }
+  </script>
+
+  <script type="text/babel" data-type="module">
+    import React, { useState, useEffect, useCallback } from 'react';
+    import { createRoot } from 'react-dom/client';
+
+    /* ============================================================
+       CONSTANTS
+       ============================================================ */
+    const EPIC_COLORS = [
+      '#004ee8', '#c00000', '#e8a200', '#00a87a',
+      '#8b00e8', '#e85c00', '#0095e8', '#e800a2',
+    ];
+    const WIP_LIMIT = 2;
+
+    /* ============================================================
+       STORE UTILITIES
+       ============================================================ */
+    class WipLimitError extends Error {
+      constructor() { super('WIP_LIMIT_EXCEEDED'); }
+    }
+
+    const getWipCount = (tasks) => tasks.filter(t => t.status === 'WIP').length;
+    const canMoveToWip = (tasks) => getWipCount(tasks) < WIP_LIMIT;
+
+    const createEpic = (name, colorHex) => ({
+      id: crypto.randomUUID(), name: name.trim(), colorHex,
+    });
+
+    const createTask = (epicId, title, definitionOfDone) => ({
+      id: crypto.randomUUID(),
+      epicId,
+      title: title.trim(),
+      definitionOfDone: definitionOfDone.trim(),
+      status: 'TO_BE_PICKED',
+      dateStarted: null,
+    });
+
+    const moveTaskStatus = (tasks, taskId, newStatus) => {
+      if (newStatus === 'WIP' && !canMoveToWip(tasks)) throw new WipLimitError();
+      return tasks.map(t => t.id !== taskId ? t : {
+        ...t,
+        status: newStatus,
+        dateStarted: newStatus === 'WIP' && !t.dateStarted
+          ? new Date().toISOString() : t.dateStarted,
+      });
+    };
+
+    /* ============================================================
+       HOOK: useLocalStorage
+       ============================================================ */
+    function useLocalStorage(key, initial) {
+      const [val, setVal] = useState(() => {
+        try {
+          const item = localStorage.getItem(key);
+          return item ? JSON.parse(item) : initial;
+        } catch { return initial; }
+      });
+      const set = useCallback((v) => {
+        try {
+          const stored = v instanceof Function ? v(val) : v;
+          setVal(stored);
+          localStorage.setItem(key, JSON.stringify(stored));
+        } catch (e) { console.error(e); }
+      }, [key, val]);
+      return [val, set];
+    }
+
+    /* ============================================================
+       STATUS TICKER
+       ============================================================ */
+    function StatusTicker({ tasks }) {
+      const wip = getWipCount(tasks);
+      const full = wip >= WIP_LIMIT;
+      return (
+        <div className="status-ticker">
+          <span className="ticker-label">48H TRACKER</span>
+          <span className={`ticker-wip${full ? ' full' : ''}`}>
+            WIP {wip}/{WIP_LIMIT}
+            {full && <span className="ticker-full-badge">FULL</span>}
+          </span>
+        </div>
+      );
+    }
+
+    /* ============================================================
+       BOTTOM NAV
+       ============================================================ */
+    function BottomNav({ active, onChange }) {
+      return (
+        <nav className="bottom-nav">
+          <button
+            id="nav-brain-dump"
+            className={`nav-tab${active === 'brain-dump' ? ' active' : ''}`}
+            onClick={() => onChange('brain-dump')}
+          >
+            <svg className="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>
+            </svg>
+            <span className="nav-label">Brain Dump</span>
+          </button>
+          <button
+            id="nav-action-board"
+            className={`nav-tab${active === 'action-board' ? ' active' : ''}`}
+            onClick={() => onChange('action-board')}
+          >
+            <svg className="nav-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
+            </svg>
+            <span className="nav-label">Action Board</span>
+          </button>
+        </nav>
+      );
+    }
+
+    /* ============================================================
+       WIP BLOCKER
+       ============================================================ */
+    function WipBlocker({ visible }) {
+      useEffect(() => {
+        if (visible) {
+          document.body.classList.add('wip-flash');
+          const t = setTimeout(() => document.body.classList.remove('wip-flash'), 600);
+          return () => clearTimeout(t);
+        }
+      }, [visible]);
+      if (!visible) return null;
+      return (
+        <div className="wip-blocker" role="alert">
+          <div className="wip-blocker__inner">
+            <span className="wip-blocker__title">WIP FULL</span>
+            <span className="wip-blocker__subtitle">MAX 2 ACTIVE TASKS ALLOWED</span>
+            <span className="wip-blocker__rule">FINISH OR DEPRIORITIZE BEFORE ADDING MORE</span>
+          </div>
+        </div>
+      );
+    }
+
+    /* ============================================================
+       EPIC CARD
+       ============================================================ */
+    function EpicCard({ epic, taskCount }) {
+      return (
+        <div className="epic-card" id={`epic-${epic.id}`}>
+          <div className="epic-color-dot" style={{ backgroundColor: epic.colorHex }} />
+          <div className="epic-card__content">
+            <span className="epic-card__name">{epic.name}</span>
+            <span className="epic-card__meta">EPIC</span>
+          </div>
+          <div className="epic-card__badge">
+            <span className="epic-badge">{taskCount}</span>
+            <span className="epic-badge-label">tasks</span>
+          </div>
+        </div>
+      );
+    }
+
+    /* ============================================================
+       ADD EPIC MODAL
+       ============================================================ */
+    function AddEpicModal({ onClose, onAdd }) {
+      const [name, setName] = useState('');
+      const [color, setColor] = useState(EPIC_COLORS[0]);
+      const [err, setErr] = useState('');
+
+      const submit = (e) => {
+        e.preventDefault();
+        if (!name.trim()) { setErr('Epic name is required.'); return; }
+        onAdd(name.trim(), color);
+        onClose();
+      };
+
+      return (
+        <div className="modal-overlay" onClick={onClose} id="add-epic-modal">
+          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <span className="modal-tag">NEW EPIC</span>
+              <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
+            </div>
+            <p className="modal-subtitle">48H — Maximum Sprint Duration</p>
+            <form onSubmit={submit} className="modal-form">
+              <label className="field-label">EPIC NAME</label>
+              <input
+                autoFocus
+                className={`field-input${err ? ' error' : ''}`}
+                type="text"
+                placeholder="e.g. Build MVP"
+                value={name}
+                id="epic-name-input"
+                onChange={e => { setName(e.target.value); setErr(''); }}
+              />
+              {err && <span className="field-error">{err}</span>}
+
+              <label className="field-label field-mt">COLOUR</label>
+              <div className="color-swatches">
+                {EPIC_COLORS.map(c => (
+                  <button
+                    key={c}
+                    type="button"
+                    className={`swatch${color === c ? ' selected' : ''}`}
+                    style={{ backgroundColor: c }}
+                    onClick={() => setColor(c)}
+                    aria-label={`Color ${c}`}
+                  />
+                ))}
+              </div>
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={!name.trim()}
+                id="add-epic-submit"
+              >
+                ADD EPIC
+              </button>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    /* ============================================================
+       BRAIN DUMP VIEW
+       ============================================================ */
+    function BrainDump({ epics, tasks, onAddEpic }) {
+      const [showModal, setShowModal] = useState(false);
+      const count = (epicId) => tasks.filter(t => t.epicId === epicId).length;
+
+      return (
+        <div className="view" id="brain-dump-view">
+          <div className="view-header">
+            <h1 className="view-title">EPICS</h1>
+            <span className="view-count">{epics.length} epics</span>
+          </div>
+          {epics.length === 0 && (
+            <div className="empty-state">
+              <p className="empty-state__title">NO EPICS YET</p>
+              <p className="empty-state__sub">Add your first epic to start organising work into themes.</p>
+            </div>
+          )}
+          <div className="epic-list">
+            {epics.map(ep => <EpicCard key={ep.id} epic={ep} taskCount={count(ep.id)} />)}
+          </div>
+          <button className="fab" onClick={() => setShowModal(true)} id="add-epic-fab" aria-label="Add Epic">+</button>
+          {showModal && <AddEpicModal onClose={() => setShowModal(false)} onAdd={onAddEpic} />}
+        </div>
+      );
+    }
+
+    /* ============================================================
+       TASK CARD
+       ============================================================ */
+    const STATUS_NEXT  = { TO_BE_PICKED: 'WIP', WIP: 'DONE', DONE: null };
+    const STATUS_LABEL = { TO_BE_PICKED: 'TO PICK', WIP: 'WIP', DONE: 'DONE' };
+    const PILL_CLASS   = { TO_BE_PICKED: 'pill-to-be-picked', WIP: 'pill-wip', DONE: 'pill-done' };
+
+    function TaskCard({ task, epic, onStatusChange }) {
+      const next = STATUS_NEXT[task.status];
+      const done = task.status === 'DONE';
+      return (
+        <div className={`task-card${done ? ' done' : ''}`} id={`task-${task.id}`}>
+          <div className="task-card__header">
+            {epic && <span className="task-epic-dot" style={{ backgroundColor: epic.colorHex }} />}
+            <span className="task-epic-name">{epic?.name ?? 'No Epic'}</span>
+            <span className={`task-status-pill ${PILL_CLASS[task.status]}`}>{STATUS_LABEL[task.status]}</span>
+          </div>
+          <p className={`task-title${done ? ' done' : ''}`}>{task.title}</p>
+          <p className="task-dod"><span className="task-dod-label">DOD —</span> {task.definitionOfDone}</p>
+          {task.dateStarted && (
+            <p className="task-date">
+              STARTED {new Date(task.dateStarted).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}
+            </p>
+          )}
+          {next && (
+            <button
+              className="task-advance-btn"
+              onClick={() => onStatusChange(task.id, next)}
+              id={`advance-${task.id}`}
+            >
+              MOVE TO {STATUS_LABEL[next]} →
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    /* ============================================================
+       KANBAN COLUMN
+       ============================================================ */
+    const COL_LABEL = {
+      TO_BE_PICKED: 'TO BE PICKED',
+      WIP:          'IN PROGRESS',
+      DONE:         'DONE',
+    };
+
+    function KanbanColumn({ status, tasks, epics, onStatusChange }) {
+      const full = status === 'WIP' && tasks.length >= WIP_LIMIT;
+      return (
+        <div className={`kanban-col${full ? ' is-full' : ''}`} id={`col-${status.toLowerCase().replace('_','-')}`}>
+          <div className="kanban-col__header">
+            <span className="kanban-col__label">{COL_LABEL[status]}</span>
+            <span className="kanban-col__count">{tasks.length}{status === 'WIP' ? `/${WIP_LIMIT}` : ''}</span>
+            {full && <span className="kanban-full-badge">FULL</span>}
+          </div>
+          {tasks.length === 0 && <div className="kanban-empty">NO TASKS</div>}
+          <div className="task-list">
+            {tasks.map(t => (
+              <TaskCard
+                key={t.id}
+                task={t}
+                epic={epics.find(e => e.id === t.epicId)}
+                onStatusChange={onStatusChange}
+              />
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    /* ============================================================
+       ADD TASK MODAL
+       ============================================================ */
+    function AddTaskModal({ epics, onClose, onAdd }) {
+      const [title, setTitle]   = useState('');
+      const [dod, setDod]       = useState('');
+      const [epicId, setEpicId] = useState(epics[0]?.id ?? '');
+      const [errors, setErrors] = useState({});
+
+      const validate = () => {
+        const e = {};
+        if (!title.trim())  e.title = 'Task title is required.';
+        if (!dod.trim())    e.dod   = 'Definition of Done is mandatory.';
+        if (!epicId)        e.epic  = 'Please select an epic.';
+        return e;
+      };
+
+      const submit = (e) => {
+        e.preventDefault();
+        const errs = validate();
+        if (Object.keys(errs).length) { setErrors(errs); return; }
+        onAdd(epicId, title.trim(), dod.trim());
+        onClose();
+      };
+
+      const clr = (field) => setErrors(p => ({ ...p, [field]: '' }));
+
+      return (
+        <div className="modal-overlay" onClick={onClose} id="add-task-modal">
+          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <span className="modal-tag">NEW TASK</span>
+              <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
+            </div>
+            <p className="modal-subtitle">Tasks without concrete DoD will be flagged for review.</p>
+            <form onSubmit={submit} className="modal-form">
+              <label className="field-label">TASK TITLE</label>
+              <input
+                autoFocus
+                className={`field-input${errors.title ? ' error' : ''}`}
+                type="text"
+                placeholder="e.g. Refactor state hydration"
+                value={title}
+                id="task-title-input"
+                onChange={e => { setTitle(e.target.value); clr('title'); }}
+              />
+              {errors.title && <span className="field-error">{errors.title}</span>}
+
+              <label className="field-label field-mt">DEFINITION OF DONE</label>
+              <textarea
+                className={`field-input${errors.dod ? ' error' : ''}`}
+                placeholder="e.g. Zero latency re-render, unit tests passing"
+                value={dod}
+                rows={3}
+                id="task-dod-input"
+                onChange={e => { setDod(e.target.value); clr('dod'); }}
+              />
+              {errors.dod && <span className="field-error">{errors.dod}</span>}
+
+              <label className="field-label field-mt">EPIC</label>
+              {epics.length === 0
+                ? <p className="field-error">No epics yet — add an epic first from Brain Dump.</p>
+                : (
+                  <select
+                    className={`field-input${errors.epic ? ' error' : ''}`}
+                    value={epicId}
+                    id="task-epic-select"
+                    onChange={e => { setEpicId(e.target.value); clr('epic'); }}
+                  >
+                    {epics.map(ep => <option key={ep.id} value={ep.id}>{ep.name}</option>)}
+                  </select>
+                )
+              }
+              {errors.epic && <span className="field-error">{errors.epic}</span>}
+
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={epics.length === 0}
+                id="add-task-submit"
+              >
+                ADD TASK
+              </button>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    /* ============================================================
+       ACTION BOARD VIEW
+       ============================================================ */
+    const STATUSES = ['TO_BE_PICKED', 'WIP', 'DONE'];
+
+    function ActionBoard({ tasks, epics, onStatusChange, onAddTask }) {
+      const [showModal, setShowModal] = useState(false);
+      return (
+        <div className="view" id="action-board-view">
+          <div className="view-header">
+            <h1 className="view-title">ACTION BOARD</h1>
+            <span className="view-count">{tasks.length} tasks</span>
+          </div>
+          <div className="kanban-board">
+            {STATUSES.map(s => (
+              <KanbanColumn
+                key={s}
+                status={s}
+                tasks={tasks.filter(t => t.status === s)}
+                epics={epics}
+                onStatusChange={onStatusChange}
+              />
+            ))}
+          </div>
+          <button className="fab" onClick={() => setShowModal(true)} id="add-task-fab" aria-label="Add Task">+</button>
+          {showModal && <AddTaskModal epics={epics} onClose={() => setShowModal(false)} onAdd={onAddTask} />}
+        </div>
+      );
+    }
+
+    /* ============================================================
+       APP ROOT
+       ============================================================ */
+    function App() {
+      const [epics, setEpics] = useLocalStorage('epics_48h', []);
+      const [tasks, setTasks] = useLocalStorage('tasks_48h', []);
+      const [tab, setTab]     = useState('brain-dump');
+      const [wipBlocked, setWipBlocked] = useState(false);
+
+      const handleAddEpic = (name, colorHex) => setEpics([...epics, createEpic(name, colorHex)]);
+
+      const handleAddTask = (epicId, title, dod) => setTasks([...tasks, createTask(epicId, title, dod)]);
+
+      const handleStatusChange = (taskId, newStatus) => {
+        try {
+          setTasks(moveTaskStatus(tasks, taskId, newStatus));
+        } catch (err) {
+          if (err instanceof WipLimitError) {
+            setWipBlocked(true);
+            setTimeout(() => setWipBlocked(false), 650);
+          }
+        }
+      };
+
+      return (
+        <div className="app-root">
+          <StatusTicker tasks={tasks} />
+          <main className="main-content">
+            {tab === 'brain-dump' && (
+              <BrainDump epics={epics} tasks={tasks} onAddEpic={handleAddEpic} />
+            )}
+            {tab === 'action-board' && (
+              <ActionBoard
+                tasks={tasks}
+                epics={epics}
+                onStatusChange={handleStatusChange}
+                onAddTask={handleAddTask}
+              />
+            )}
+          </main>
+          <WipBlocker visible={wipBlocked} />
+          <BottomNav active={tab} onChange={setTab} />
+        </div>
+      );
+    }
+
+    /* ============================================================
+       MOUNT
+       ============================================================ */
+    createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
