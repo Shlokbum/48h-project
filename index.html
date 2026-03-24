@@ -946,8 +946,8 @@
           }
           
           setIsAuthenticated(true);
-        } else {
-          throw new Error('Invalid');
+        } catch (e) {
+          throw e;
         }
       };
 
