@@ -414,19 +414,25 @@
     }
 
     /* ============================================================
-       STATUS TICKER
+       STATUS TICKER (TOP BAR)
        ============================================================ */
-    function StatusTicker({ tasks }) {
-      const wip = getWipCount(tasks);
-      const full = wip >= WIP_LIMIT;
+    function StatusTicker({ tasks, isSyncing }) {
+      const wipCount = tasks.filter(t => t.status === 'WIP').length;
       return (
-        <div className="status-ticker">
-          <span className="ticker-label">48H TRACKER</span>
-          <span className={`ticker-wip${full ? ' full' : ''}`}>
-            WIP {wip}/{WIP_LIMIT}
-            {full && <span className="ticker-full-badge">FULL</span>}
-          </span>
-        </div>
+        <header className="status-ticker">
+          <div className="status-ticker__left">
+            <span className="ticker-label">WIP LIMIT</span>
+            <span className={`ticker-value${wipCount >= WIP_LIMIT ? ' critical' : ''}`}>{wipCount}/{WIP_LIMIT}</span>
+          </div>
+          <div className="status-ticker__right">
+            {isSyncing ? (
+              <span className="sync-status active">SYNCING...</span>
+            ) : (
+              <span className="sync-status">CLOUD SYNCED</span>
+            )}
+            <span className="ticker-time">48H</span>
+          </div>
+        </header>
       );
     }
 
@@ -442,7 +448,7 @@
             onClick={() => onChange('brain-dump')}
           >
             <svg className="nav-icon" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>
+              <path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>
             </svg>
             <span className="nav-label">Brain Dump</span>
           </button>
@@ -836,13 +842,115 @@
     }
 
     /* ============================================================
+       AUTH OVERLAY
+       ============================================================ */
+    const AuthOverlay = ({ onLogin }) => {
+      const [pass, setPass] = React.useState('');
+      const [err, setErr] = React.useState(false);
+
+      const submit = (e) => {
+        e.preventDefault();
+        onLogin(pass).catch(() => setErr(true));
+      };
+
+      return (
+        <div className="modal-overlay" style={{ zIndex: 100, backgroundColor: 'var(--bg)' }}>
+          <div className="modal-sheet" style={{ maxWidth: '400px', transform: 'none' }}>
+            <div className="modal-header">
+              <span className="modal-tag">SECURE ACCESS</span>
+            </div>
+            <p className="modal-subtitle">48H Project — Restricted to Master User</p>
+            <form onSubmit={submit} className="modal-form">
+              <label className="field-label">MASTER PASSWORD</label>
+              <input
+                autoFocus
+                type="password"
+                className={`field-input${err ? ' error' : ''}`}
+                value={pass}
+                onChange={e => { setPass(e.target.value); setErr(false); }}
+                placeholder="••••••••"
+              />
+              {err && <p className="field-error">Invalid password. Access denied.</p>}
+              <button type="submit" className="btn-primary" style={{ marginTop: '2rem' }}>UNLOCK APP</button>
+            </form>
+          </div>
+        </div>
+      );
+    };
+
+    /* ============================================================
        APP ROOT
        ============================================================ */
     function App() {
-      const [epics, setEpics] = useLocalStorage('epics_48h', []);
-      const [tasks, setTasks] = useLocalStorage('tasks_48h', []);
-      const [tab, setTab]     = useState('brain-dump');
-      const [wipBlocked, setWipBlocked] = useState(false);
+      const [activeTab, setActiveTab] = React.useState('brain-dump');
+      const [epics, setEpics] = React.useState([]);
+      const [tasks, setTasks] = React.useState([]);
+      const [wipBlocked, setWipBlocked] = React.useState(false);
+      const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+      const [masterPass, setMasterPass] = React.useState(localStorage.getItem('48h_master_pass') || '');
+      const [isSyncing, setIsSyncing] = React.useState(false);
+
+      // --- Cloud Sync ---
+      const syncToCloud = async (currentEpics, currentTasks) => {
+        if (!masterPass) return;
+        setIsSyncing(true);
+        try {
+          await fetch('/api/sync', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': masterPass
+            },
+            body: JSON.stringify({ epics: currentEpics, tasks: currentTasks })
+          });
+        } catch (e) { console.error('Sync failed', e); }
+        finally { setIsSyncing(false); }
+      };
+
+      // Debounced sync
+      const syncTimeout = React.useRef(null);
+      React.useEffect(() => {
+        if (!isAuthenticated) return;
+        if (syncTimeout.current) clearTimeout(syncTimeout.current);
+        syncTimeout.current = setTimeout(() => {
+          syncToCloud(epics, tasks);
+        }, 1500);
+      }, [epics, tasks]);
+
+      const handleLogin = async (password) => {
+        const res = await fetch('/api/sync', {
+          headers: { 'Authorization': password }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setMasterPass(password);
+          localStorage.setItem('48h_master_pass', password);
+          
+          // Migration check: If cloud is empty but local has data, seed cloud
+          const localEpics = JSON.parse(localStorage.getItem('epics_48h') || '[]');
+          const localTasks = JSON.parse(localStorage.getItem('tasks_48h') || '[]');
+          
+          if (data.epics.length === 0 && localEpics.length > 0) {
+            setEpics(localEpics);
+            setTasks(localTasks);
+            await syncToCloud(localEpics, localTasks);
+          } else {
+            setEpics(data.epics);
+            setTasks(data.tasks);
+          }
+          
+          setIsAuthenticated(true);
+        } else {
+          throw new Error('Invalid');
+        }
+      };
+
+      // Auto-login if we have a saved pass
+      React.useEffect(() => {
+        if (masterPass) handleLogin(masterPass).catch(() => setMasterPass(''));
+      }, []);
+
+      if (!isAuthenticated) return <AuthOverlay onLogin={handleLogin} />;
 
       const handleAddEpic = (name, colorHex) => setEpics([...epics, createEpic(name, colorHex)]);
 
@@ -873,9 +981,9 @@
 
       return (
         <div className="app-root">
-          <StatusTicker tasks={tasks} />
+          <StatusTicker tasks={tasks} isSyncing={isSyncing} />
           <main className="main-content">
-            {tab === 'brain-dump' && (
+            {activeTab === 'brain-dump' && (
               <BrainDump 
                 epics={epics} 
                 tasks={tasks} 
