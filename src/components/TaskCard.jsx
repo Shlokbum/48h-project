@@ -26,14 +26,15 @@ export default function TaskCard({ task, epic, onStatusChange, onClick }) {
   const wip = task.status === 'WIP';
 
   return (
-    <div className={`task-card${done ? ' done' : ''}${wip ? ' wip' : ''}`} role="button" tabIndex="0" id={`task-${task.id}`} onClick={() => onClick(task)}>
+    <div 
+      className={`task-card${done ? ' done' : ''}${wip ? ' wip' : ''}`} 
+      role="button" 
+      tabIndex="0" 
+      id={`task-${task.id}`} 
+      onClick={() => onClick(task)}
+      style={{ borderLeftColor: epic ? epic.colorHex : 'transparent' }}
+    >
       <div className="task-card__header">
-        {epic && (
-          <span
-            className="task-epic-dot"
-            style={{ backgroundColor: epic.colorHex }}
-          />
-        )}
         <span className="task-epic-name">{epic?.name ?? 'No Epic'}</span>
         <span className={`task-status-pill ${PILL_CLASS[task.status]}`}>{STATUS_LABEL[task.status]}</span>
       </div>
