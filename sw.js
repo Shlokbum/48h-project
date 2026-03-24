@@ -1,15 +1,20 @@
-const CACHE_NAME = '48h-project-cache-v1';
+const CACHE_NAME = '48h-project-cache-v2';
 const ASSETS_TO_CACHE = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon.svg'
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/icon.svg'
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      return Promise.all(
+        ASSETS_TO_CACHE.map(url => {
+          return cache.add(url).catch(err => console.warn('SW Cache warn:', url, err));
+        })
+      );
     })
   );
 });
@@ -17,8 +22,14 @@ self.addEventListener('install', (event) => {
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
+      // Return cached version or fetch from network and cache for offline
+      return response || fetch(event.request).then(fetchRes => {
+        return caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, fetchRes.clone());
+          return fetchRes;
+        });
+      });
+    }).catch(() => caches.match('/'))
   );
 });
 
