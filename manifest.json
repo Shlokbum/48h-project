@@ -1,0 +1,17 @@
+{
+  "name": "48H Project",
+  "short_name": "48H",
+  "description": "Minimalist mobile-first productivity app.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#131313",
+  "theme_color": "#004ee8",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
