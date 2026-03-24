@@ -846,11 +846,11 @@
        ============================================================ */
     const AuthOverlay = ({ onLogin }) => {
       const [pass, setPass] = React.useState('');
-      const [err, setErr] = React.useState(false);
+      const [err, setErr] = React.useState('');
 
       const submit = (e) => {
         e.preventDefault();
-        onLogin(pass).catch(() => setErr(true));
+        onLogin(pass).catch((e) => setErr(e.message));
       };
 
       return (
@@ -867,10 +867,10 @@
                 type="password"
                 className={`field-input${err ? ' error' : ''}`}
                 value={pass}
-                onChange={e => { setPass(e.target.value); setErr(false); }}
+                onChange={e => { setPass(e.target.value); setErr(''); }}
                 placeholder="••••••••"
               />
-              {err && <p className="field-error">Invalid password. Access denied.</p>}
+              {err && <p className="field-error">{err}</p>}
               <button type="submit" className="btn-primary" style={{ marginTop: '2rem' }}>UNLOCK APP</button>
             </form>
           </div>
@@ -918,10 +918,16 @@
       }, [epics, tasks]);
 
       const handleLogin = async (password) => {
-        const res = await fetch('/api/sync', {
-          headers: { 'Authorization': password }
-        });
-        if (res.ok) {
+        try {
+          const res = await fetch('/api/sync', {
+            headers: { 'Authorization': password }
+          });
+          
+          if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || 'Access Denied');
+          }
+
           const data = await res.json();
           setMasterPass(password);
           localStorage.setItem('48h_master_pass', password);
