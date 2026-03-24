@@ -196,7 +196,9 @@
     /* Task Card */
     .task-card { background: var(--surface); padding: 0.85rem; display: flex; flex-direction: column; gap: 0.4rem; cursor: pointer; text-align: left; }
     .task-card.done { background: var(--surface-top); opacity: 0.7; }
-    .task-card:hover:not(.done) { background: var(--surface-hi); }
+    .task-card.wip { background: #ffffff; color: #131313; }
+    .task-card:hover:not(.done):not(.wip) { background: var(--surface-hi); }
+    .task-card.wip:hover { background: #f4f4f4; }
     .task-card__header { display: flex; align-items: center; gap: 0.4rem; pointer-events: none; }
     .task-epic-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
     .task-epic-name { font-size: 0.55rem; font-weight: 600; letter-spacing: 0.08em; color: var(--text-dim); flex: 1; text-transform: uppercase; }
@@ -206,9 +208,13 @@
     .pill-done { color: var(--outline); }
     .task-title { font-size: 0.875rem; font-weight: 600; color: var(--text); line-height: 1.4; letter-spacing: -0.01em; }
     .task-title.done { text-decoration: line-through; color: var(--text-dim); }
+    .task-card.wip .task-title { color: #131313; }
     .task-dod { font-size: 0.7rem; color: var(--text-dim); line-height: 1.5; }
+    .task-card.wip .task-dod { color: #474747; }
     .task-dod-label { font-weight: 700; font-size: 0.6rem; letter-spacing: 0.08em; color: var(--outline); }
+    .task-card.wip .task-dod-label { color: #737373; }
     .task-date { font-size: 0.55rem; font-weight: 600; letter-spacing: 0.08em; color: var(--outline); text-transform: uppercase; font-variant-numeric: tabular-nums; }
+    .task-card.wip .task-date { color: #737373; }
     .task-advance-btn {
       align-self: flex-start;
       margin-top: 0.4rem;
@@ -613,8 +619,9 @@
     function TaskCard({ task, epic, onStatusChange, onClick }) {
       const next = STATUS_NEXT[task.status];
       const done = task.status === 'DONE';
+      const wip = task.status === 'WIP';
       return (
-        <div className={`task-card${done ? ' done' : ''}`} role="button" tabIndex="0" id={`task-${task.id}`} onClick={() => onClick(task)}>
+        <div className={`task-card${done ? ' done' : ''}${wip ? ' wip' : ''}`} role="button" tabIndex="0" id={`task-${task.id}`} onClick={() => onClick(task)}>
           <div className="task-card__header">
             {epic && <span className="task-epic-dot" style={{ backgroundColor: epic.colorHex }} />}
             <span className="task-epic-name">{epic?.name ?? 'No Epic'}</span>

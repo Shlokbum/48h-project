@@ -18,17 +18,33 @@ export default function App() {
     setEpics([...epics, createEpic(name, colorHex)]);
   };
 
+  const handleUpdateEpic = (id, name, colorHex) => {
+    setEpics(epics.map(e => e.id === id ? { ...e, name, colorHex } : e));
+  };
+
+  const handleDeleteEpic = (id) => {
+    setEpics(epics.filter(e => e.id !== id));
+    setTasks(tasks.filter(t => t.epicId !== id)); // Cascade delete tasks
+  };
+
   // --- Task mutations ---
-  const handleAddTask = (epicId, title, dod) => {
-    setTasks([...tasks, createTask(epicId, title, dod)]);
+  const handleAddTask = (epicId, title, definitionOfDone) => {
+    setTasks([...tasks, createTask(epicId, title, definitionOfDone)]);
+  };
+
+  const handleUpdateTask = (id, epicId, title, definitionOfDone) => {
+    setTasks(tasks.map(t => t.id === id ? { ...t, epicId, title, definitionOfDone } : t));
+  };
+
+  const handleDeleteTask = (id) => {
+    setTasks(tasks.filter(t => t.id !== id));
   };
 
   const handleStatusChange = (taskId, newStatus) => {
     try {
-      const updated = moveTaskStatus(tasks, taskId, newStatus);
-      setTasks(updated);
-    } catch (err) {
-      if (err instanceof WipLimitError) {
+      setTasks(moveTaskStatus(tasks, taskId, newStatus));
+    } catch (error) {
+      if (error.message === 'WIP_LIMIT_EXCEEDED') {
         setWipBlocked(true);
         setTimeout(() => setWipBlocked(false), 600);
       }
@@ -45,6 +61,8 @@ export default function App() {
             epics={epics}
             tasks={tasks}
             onAddEpic={handleAddEpic}
+            onUpdateEpic={handleUpdateEpic}
+            onDeleteEpic={handleDeleteEpic}
           />
         )}
         {activeTab === 'action-board' && (
@@ -53,6 +71,8 @@ export default function App() {
             epics={epics}
             onStatusChange={handleStatusChange}
             onAddTask={handleAddTask}
+            onUpdateTask={handleUpdateTask}
+            onDeleteTask={handleDeleteTask}
           />
         )}
       </main>

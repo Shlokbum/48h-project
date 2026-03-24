@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { EpicCard } from './EpicCard';
 import { AddEpicModal } from './AddEpicModal';
 
-export function BrainDump({ epics, tasks, onAddEpic }) {
-  const [showModal, setShowModal] = useState(false);
+export default function BrainDump({ epics, tasks, onAddEpic, onUpdateEpic, onDeleteEpic }) {
+  const [editingEpic, setEditingEpic] = useState(null);
 
-  const getTaskCount = (epicId) => tasks.filter((t) => t.epicId === epicId).length;
+  const getTaskCount = (epicId) => {
+    return tasks.filter((t) => t.epicId === epicId).length;
+  };
 
   return (
     <div className="view" id="brain-dump-view">
@@ -17,7 +19,9 @@ export function BrainDump({ epics, tasks, onAddEpic }) {
       {epics.length === 0 && (
         <div className="empty-state">
           <p className="empty-state__title">NO EPICS YET</p>
-          <p className="empty-state__sub">Add your first epic to start organising work into themes.</p>
+          <p className="empty-state__sub">
+            Add your first epic to start organising work into themes.
+          </p>
         </div>
       )}
 
@@ -27,23 +31,29 @@ export function BrainDump({ epics, tasks, onAddEpic }) {
             key={epic.id}
             epic={epic}
             taskCount={getTaskCount(epic.id)}
+            onClick={setEditingEpic}
           />
         ))}
       </div>
 
       <button
         className="fab"
-        onClick={() => setShowModal(true)}
+        onClick={() => setEditingEpic('new')}
         id="add-epic-fab"
         aria-label="Add Epic"
       >
         +
       </button>
 
-      {showModal && (
+      {editingEpic && (
         <AddEpicModal
-          onClose={() => setShowModal(false)}
-          onAdd={onAddEpic}
+          editItem={editingEpic !== 'new' ? editingEpic : null}
+          onClose={() => setEditingEpic(null)}
+          onSave={(name, colorHex) => {
+            if (editingEpic === 'new') onAddEpic(name, colorHex);
+            else onUpdateEpic(editingEpic.id, name, colorHex);
+          }}
+          onDelete={editingEpic !== 'new' ? () => { onDeleteEpic(editingEpic.id); setEditingEpic(null); } : null}
         />
       )}
     </div>

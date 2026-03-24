@@ -1,13 +1,15 @@
+```javascript
 import { useState } from 'react';
 import { KanbanColumn } from './KanbanColumn';
 import { AddTaskModal } from './AddTaskModal';
 
 const STATUSES = ['TO_BE_PICKED', 'WIP', 'DONE'];
 
-export function ActionBoard({ tasks, epics, onStatusChange, onAddTask }) {
-  const [showModal, setShowModal] = useState(false);
-
-  const getTasksForStatus = (status) => tasks.filter((t) => t.status === status);
+export default function ActionBoard({ tasks, epics, onStatusChange, onAddTask, onUpdateTask, onDeleteTask }) {
+  const [editingTask, setEditingTask] = useState(null);
+  
+  // We pass the edit click handler down via the onStatusChange object to avoid prop drilling through KanbanColumn
+  onStatusChange.onEditTask = setEditingTask;
 
   return (
     <div className="view" id="action-board-view">
@@ -21,7 +23,7 @@ export function ActionBoard({ tasks, epics, onStatusChange, onAddTask }) {
           <KanbanColumn
             key={status}
             status={status}
-            tasks={getTasksForStatus(status)}
+            tasks={tasks.filter((t) => t.status === status)}
             epics={epics}
             onStatusChange={onStatusChange}
           />
@@ -30,20 +32,26 @@ export function ActionBoard({ tasks, epics, onStatusChange, onAddTask }) {
 
       <button
         className="fab"
-        onClick={() => setShowModal(true)}
+        onClick={() => setEditingTask('new')}
         id="add-task-fab"
         aria-label="Add Task"
       >
         +
       </button>
 
-      {showModal && (
+      {editingTask && (
         <AddTaskModal
           epics={epics}
-          onClose={() => setShowModal(false)}
-          onAdd={onAddTask}
+          editItem={editingTask !== 'new' ? editingTask : null}
+          onClose={() => setEditingTask(null)}
+          onSave={(epicId, title, dod) => {
+            if (editingTask === 'new') onAddTask(epicId, title, dod);
+            else onUpdateTask(editingTask.id, epicId, title, dod);
+          }}
+          onDelete={editingTask !== 'new' ? () => { onDeleteTask(editingTask.id); setEditingTask(null); } : null}
         />
       )}
     </div>
   );
 }
+```

@@ -37,6 +37,7 @@ export function KanbanColumn({ status, tasks, epics, onStatusChange }) {
               task={task}
               epic={epic}
               onStatusChange={onStatusChange}
+              onClick={onStatusChange.onEditTask}
             />
           );
         })}

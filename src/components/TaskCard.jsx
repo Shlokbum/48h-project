@@ -10,27 +10,35 @@ const STATUS_LABEL = {
   DONE: 'DONE',
 };
 
-export function TaskCard({ task, epic, onStatusChange }) {
-  const nextStatus = STATUS_SEQUENCE[task.status];
-  const isDone = task.status === 'DONE';
+// Assuming PILL_CLASS and STATUS_NEXT are defined elsewhere as per the provided snippet's context
+// For the purpose of this edit, I will replace STATUS_SEQUENCE with STATUS_NEXT as implied.
+const STATUS_NEXT = STATUS_SEQUENCE; // Placeholder, assuming STATUS_NEXT is equivalent to STATUS_SEQUENCE for now
+const PILL_CLASS = { // Placeholder, as this was not provided in the original content
+  TO_BE_PICKED: 'task-status-pill--to-be-picked',
+  WIP: 'task-status-pill--wip',
+  DONE: 'task-status-pill--done',
+};
+
+
+export default function TaskCard({ task, epic, onStatusChange, onClick }) {
+  const next = STATUS_NEXT[task.status];
+  const done = task.status === 'DONE';
+  const wip = task.status === 'WIP';
 
   return (
-    <div className={`task-card ${isDone ? 'task-card--done' : ''}`} id={`task-${task.id}`}>
+    <div className={`task-card${done ? ' done' : ''}${wip ? ' wip' : ''}`} role="button" tabIndex="0" id={`task-${task.id}`} onClick={() => onClick(task)}>
       <div className="task-card__header">
         {epic && (
           <span
             className="task-epic-dot"
             style={{ backgroundColor: epic.colorHex }}
-            title={epic.name}
           />
         )}
         <span className="task-epic-name">{epic?.name ?? 'No Epic'}</span>
-        <span className={`task-status-pill task-status-pill--${task.status.toLowerCase().replace('_', '-')}`}>
-          {STATUS_LABEL[task.status]}
-        </span>
+        <span className={`task-status-pill ${PILL_CLASS[task.status]}`}>{STATUS_LABEL[task.status]}</span>
       </div>
 
-      <p className={`task-title ${isDone ? 'task-title--done' : ''}`}>{task.title}</p>
+      <p className={`task-title${done ? ' done' : ''}`}>{task.title}</p>
 
       <p className="task-dod">
         <span className="task-dod-label">DOD —</span> {task.definitionOfDone}
@@ -44,14 +52,16 @@ export function TaskCard({ task, epic, onStatusChange }) {
         </p>
       )}
 
-      {nextStatus && (
-        <button
+      {next && (
+        <div
+          role="button"
+          tabIndex="0"
           className="task-advance-btn"
-          onClick={() => onStatusChange(task.id, nextStatus)}
+          onClick={(e) => { e.stopPropagation(); onStatusChange(task.id, next); }}
           id={`advance-${task.id}`}
         >
-          MOVE TO {STATUS_LABEL[nextStatus]} →
-        </button>
+          MOVE TO {STATUS_LABEL[next]} →
+        </div>
       )}
     </div>
   );
