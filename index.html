@@ -899,7 +899,7 @@
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': masterPass
+              'X-Master-Password': masterPass
             },
             body: JSON.stringify({ epics: currentEpics, tasks: currentTasks })
           });
@@ -920,7 +920,7 @@
       const handleLogin = async (password) => {
         try {
           const res = await fetch('/api/sync', {
-            headers: { 'Authorization': password }
+            headers: { 'X-Master-Password': password }
           });
           
           if (!res.ok) {

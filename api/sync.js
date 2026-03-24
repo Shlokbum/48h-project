@@ -1,7 +1,7 @@
 import { kv } from '@vercel/kv';
 
 export default async function handler(req, res) {
-  const authHeader = req.headers.authorization;
+  const authHeader = req.headers['x-master-password'];
   const masterPassword = process.env.MASTER_PASSWORD;
 
   // 1. Security Check
