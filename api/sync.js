@@ -1,29 +1,32 @@
-import { kv } from '@vercel/kv';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export default async function handler(request, response) {
-  // Check if KV is configured
-  if (!process.env.KV_REST_API_URL && !process.env.KV_REST_API_TOKEN) {
-    return response.status(500).json({ error: 'KV Database is not linked to this project in Vercel. Please connect a KV database in the Storage tab.' });
-  }
-
   if (request.method === 'GET') {
     try {
-      const state = await kv.get('48h_project_state');
+      const state = await prisma.appState.findUnique({
+        where: { id: 'global' },
+      });
       return response.status(200).json(state || { epics: [], tasks: [] });
     } catch (error) {
-      console.error('KV Get Error:', error);
-      return response.status(500).json({ error: 'Failed to read from KV database. Check connection.', details: error.message });
+      console.error('Prisma GET Error:', error);
+      return response.status(500).json({ error: 'Failed to read from Neon database.', details: error.message });
     }
   }
 
   if (request.method === 'POST') {
     try {
-      const state = request.body;
-      await kv.set('48h_project_state', state);
-      return response.status(200).json({ success: true });
+      const { epics, tasks } = request.body;
+      const state = await prisma.appState.upsert({
+        where: { id: 'global' },
+        update: { epics, tasks },
+        create: { id: 'global', epics, tasks },
+      });
+      return response.status(200).json({ success: true, state });
     } catch (error) {
-      console.error('KV Set Error:', error);
-      return response.status(500).json({ error: 'Failed to write to KV database. Check connection.', details: error.message });
+      console.error('Prisma POST Error:', error);
+      return response.status(500).json({ error: 'Failed to write to Neon database.', details: error.message });
     }
   }
 

@@ -1,0 +1,15 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AppState {
+  id        String   @id @default("global")
+  epics     Json
+  tasks     Json
+  updatedAt DateTime @updatedAt
+}
