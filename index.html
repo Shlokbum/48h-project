@@ -950,6 +950,25 @@
           </main>
           <WipBlocker visible={wipBlocked} />
           <BottomNav active={activeTab} onChange={setActiveTab} />
+          <div style={{ textAlign: 'center', paddingBottom: '5rem', opacity: 0.5 }}>
+            <button 
+              onClick={async () => {
+                const ep = JSON.parse(localStorage.getItem('epics') || localStorage.getItem('epics_48h') || '[]');
+                const tk = JSON.parse(localStorage.getItem('tasks') || localStorage.getItem('tasks_48h') || '[]');
+                if (ep.length > 0) {
+                  setEpics(ep);
+                  setTasks(tk);
+                  await syncToCloud(ep, tk);
+                  alert('Data recovered from local storage and synced to cloud!');
+                } else {
+                  alert('No local data found to recover.');
+                }
+              }}
+              style={{ background: 'none', border: 'none', color: 'var(--text)', fontSize: '0.6rem', textDecoration: 'underline', cursor: 'pointer' }}
+            >
+              RECOVER LEGACY DATA
+            </button>
+          </div>
         </div>
       );
     }
