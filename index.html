@@ -842,43 +842,6 @@
     }
 
     /* ============================================================
-       AUTH OVERLAY
-       ============================================================ */
-    const AuthOverlay = ({ onLogin }) => {
-      const [pass, setPass] = React.useState('');
-      const [err, setErr] = React.useState('');
-
-      const submit = (e) => {
-        e.preventDefault();
-        onLogin(pass).catch((e) => setErr(e.message));
-      };
-
-      return (
-        <div className="modal-overlay" style={{ zIndex: 100, backgroundColor: 'var(--bg)' }}>
-          <div className="modal-sheet" style={{ maxWidth: '400px', transform: 'none' }}>
-            <div className="modal-header">
-              <span className="modal-tag">SECURE ACCESS</span>
-            </div>
-            <p className="modal-subtitle">48H Project — Restricted to Master User</p>
-            <form onSubmit={submit} className="modal-form">
-              <label className="field-label">MASTER PASSWORD</label>
-              <input
-                autoFocus
-                type="password"
-                className={`field-input${err ? ' error' : ''}`}
-                value={pass}
-                onChange={e => { setPass(e.target.value); setErr(''); }}
-                placeholder="••••••••"
-              />
-              {err && <p className="field-error">{err}</p>}
-              <button type="submit" className="btn-primary" style={{ marginTop: '2rem' }}>UNLOCK APP</button>
-            </form>
-          </div>
-        </div>
-      );
-    };
-
-    /* ============================================================
        APP ROOT
        ============================================================ */
     function App() {
@@ -886,21 +849,15 @@
       const [epics, setEpics] = React.useState([]);
       const [tasks, setTasks] = React.useState([]);
       const [wipBlocked, setWipBlocked] = React.useState(false);
-      const [isAuthenticated, setIsAuthenticated] = React.useState(false);
-      const [masterPass, setMasterPass] = React.useState(localStorage.getItem('48h_master_pass') || '');
       const [isSyncing, setIsSyncing] = React.useState(false);
 
       // --- Cloud Sync ---
       const syncToCloud = async (currentEpics, currentTasks) => {
-        if (!masterPass) return;
         setIsSyncing(true);
         try {
           await fetch('/api/sync', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Master-Password': masterPass
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ epics: currentEpics, tasks: currentTasks })
           });
         } catch (e) { console.error('Sync failed', e); }
@@ -910,53 +867,35 @@
       // Debounced sync
       const syncTimeout = React.useRef(null);
       React.useEffect(() => {
-        if (!isAuthenticated) return;
         if (syncTimeout.current) clearTimeout(syncTimeout.current);
         syncTimeout.current = setTimeout(() => {
           syncToCloud(epics, tasks);
         }, 1500);
       }, [epics, tasks]);
 
-      const handleLogin = async (password) => {
+      const loadFromCloud = async () => {
         try {
-          const res = await fetch('/api/sync', {
-            headers: { 'X-Master-Password': password }
-          });
-          
-          if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.error || 'Access Denied');
+          const res = await fetch('/api/sync');
+          if (res.ok) {
+            const data = await res.json();
+            
+            // Migration check: If cloud is empty but local has data, seed cloud
+            const localEpics = JSON.parse(localStorage.getItem('epics_48h') || '[]');
+            const localTasks = JSON.parse(localStorage.getItem('tasks_48h') || '[]');
+            
+            if (data.epics.length === 0 && localEpics.length > 0) {
+              setEpics(localEpics);
+              setTasks(localTasks);
+              await syncToCloud(localEpics, localTasks);
+            } else {
+              setEpics(data.epics);
+              setTasks(data.tasks);
+            }
           }
-
-          const data = await res.json();
-          setMasterPass(password);
-          localStorage.setItem('48h_master_pass', password);
-          
-          // Migration check: If cloud is empty but local has data, seed cloud
-          const localEpics = JSON.parse(localStorage.getItem('epics_48h') || '[]');
-          const localTasks = JSON.parse(localStorage.getItem('tasks_48h') || '[]');
-          
-          if (data.epics.length === 0 && localEpics.length > 0) {
-            setEpics(localEpics);
-            setTasks(localTasks);
-            await syncToCloud(localEpics, localTasks);
-          } else {
-            setEpics(data.epics);
-            setTasks(data.tasks);
-          }
-          
-          setIsAuthenticated(true);
-        } catch (e) {
-          throw e;
-        }
+        } catch (e) { console.error('Initial load failed', e); }
       };
 
-      // Auto-login if we have a saved pass
-      React.useEffect(() => {
-        if (masterPass) handleLogin(masterPass).catch(() => setMasterPass(''));
-      }, []);
-
-      if (!isAuthenticated) return <AuthOverlay onLogin={handleLogin} />;
+      React.useEffect(() => { loadFromCloud(); }, []);
 
       const handleAddEpic = (name, colorHex) => setEpics([...epics, createEpic(name, colorHex)]);
 

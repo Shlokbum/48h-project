@@ -1,19 +1,9 @@
 import { kv } from '@vercel/kv';
 
 export default async function handler(req, res) {
-  const authHeader = req.headers['x-master-password'];
-  const masterPassword = process.env.MASTER_PASSWORD;
-
-  // 1. Security Check
-  if (!masterPassword) {
-    return res.status(500).json({ error: 'MASTER_PASSWORD not set in Vercel Environment Variables.' });
-  }
-
-  if (authHeader !== masterPassword) {
-    return res.status(401).json({ error: 'Unauthorized: Invalid Master Password.' });
-  }
-
-  // 2. Handle GET (Fetch State)
+  // Authentication removed as per user request (single user app)
+  
+  // 1. Handle GET (Fetch State)
   if (req.method === 'GET') {
     try {
       const state = await kv.get('48h_project_state');
