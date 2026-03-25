@@ -880,8 +880,8 @@
             const data = await res.json();
             
             // Migration check: If cloud is empty but local has data, seed cloud
-            const localEpics = JSON.parse(localStorage.getItem('epics_48h') || '[]');
-            const localTasks = JSON.parse(localStorage.getItem('tasks_48h') || '[]');
+            const localEpics = JSON.parse(localStorage.getItem('epics_48h') || localStorage.getItem('epics') || '[]');
+            const localTasks = JSON.parse(localStorage.getItem('tasks_48h') || localStorage.getItem('tasks') || '[]');
             
             if (data.epics.length === 0 && localEpics.length > 0) {
               setEpics(localEpics);
