@@ -637,16 +637,13 @@
           style={{ borderLeftColor: epic ? epic.colorHex : 'transparent' }}
         >
           <div className="task-card__header">
-            <span className="task-epic-name">{epic?.name ?? 'No Epic'}</span>
+            <span className="task-epic-name" style={{ background: '#000', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.65rem', letterSpacing: '0.08em', fontWeight: '600' }}>
+              {epic?.name ?? 'No Epic'}
+            </span>
             <span className={`task-status-pill ${PILL_CLASS[task.status]}`}>{STATUS_LABEL[task.status]}</span>
           </div>
           <p className={`task-title${done ? ' done' : ''}`}>{task.title}</p>
           <p className="task-dod"><span className="task-dod-label">DOD —</span> {task.definitionOfDone}</p>
-          {task.dateStarted && (
-            <p className="task-date">
-              STARTED {new Date(task.dateStarted).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}
-            </p>
-          )}
           {next && (
             <div
               role="button"
