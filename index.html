@@ -845,6 +845,7 @@
        APP ROOT
        ============================================================ */
     function App() {
+      const [activeTab, setActiveTab] = React.useState('brain-dump');
       const [epics, setEpics] = React.useState(() => {
         const local = JSON.parse(localStorage.getItem('epics_48h') || localStorage.getItem('epics') || '[]');
         return local;
