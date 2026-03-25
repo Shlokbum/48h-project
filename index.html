@@ -937,7 +937,7 @@
                 onDeleteEpic={handleDeleteEpic}
               />
             )}
-            {tab === 'action-board' && (
+            {activeTab === 'action-board' && (
               <ActionBoard
                 tasks={tasks}
                 epics={epics}
@@ -949,7 +949,7 @@
             )}
           </main>
           <WipBlocker visible={wipBlocked} />
-          <BottomNav active={tab} onChange={setTab} />
+          <BottomNav active={activeTab} onChange={setActiveTab} />
         </div>
       );
     }
