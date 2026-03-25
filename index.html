@@ -859,6 +859,10 @@
 
       // --- Cloud Sync ---
       const syncToCloud = async (currentEpics, currentTasks) => {
+        // ALWAYS save to local first for immediate persistence
+        localStorage.setItem('epics_48h', JSON.stringify(currentEpics));
+        localStorage.setItem('tasks_48h', JSON.stringify(currentTasks));
+        
         setIsSyncing(true);
         try {
           const res = await fetch('/api/sync', {
@@ -876,7 +880,7 @@
       const isInitialLoad = React.useRef(true);
       
       React.useEffect(() => {
-        if (isInitialLoad.current) return; // Don't sync back to cloud on first mount
+        if (isInitialLoad.current) return; 
         if (syncTimeout.current) clearTimeout(syncTimeout.current);
         syncTimeout.current = setTimeout(() => {
           syncToCloud(epics, tasks);
@@ -888,29 +892,24 @@
           const res = await fetch('/api/sync');
           if (res.ok) {
             const contentType = res.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-              throw new Error('Server returned non-JSON response. Check if /api/sync is deployed correctly.');
-            }
-            
-            const data = await res.json();
-            
-            // If cloud has data, it wins. If cloud is empty and we have local, sync local up.
-            if (data.epics && data.epics.length > 0) {
-              setEpics(data.epics);
-              setTasks(data.tasks);
-              // Save to local for next offline start
-              localStorage.setItem('epics_48h', JSON.stringify(data.epics));
-              localStorage.setItem('tasks_48h', JSON.stringify(data.tasks));
-            } else if (epics.length > 0) {
-              // Cloud is empty, but we have local data -> seeding cloud
-              await syncToCloud(epics, tasks);
+            if (contentType && contentType.includes('application/json')) {
+              const data = await res.json();
+              if (data && data.epics && data.epics.length > 0) {
+                setEpics(data.epics);
+                setTasks(data.tasks);
+                localStorage.setItem('epics_48h', JSON.stringify(data.epics));
+                localStorage.setItem('tasks_48h', JSON.stringify(data.tasks));
+                isInitialLoad.current = false;
+                return;
+              }
             }
           }
         } catch (e) { 
           console.error('Cloud load failed, sticking with local data:', e);
-        } finally {
-          isInitialLoad.current = false; // Allow syncing from now on
         }
+        // If we get here, either cloud is empty or fetch failed.
+        // We allow syncing local data to cloud for the rest of the session.
+        isInitialLoad.current = false;
       };
 
       React.useEffect(() => { loadFromCloud(); }, []);
