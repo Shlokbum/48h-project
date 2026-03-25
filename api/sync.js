@@ -1,29 +1,31 @@
 import { kv } from '@vercel/kv';
 
-export default async function handler(req, res) {
-  // Authentication removed as per user request (single user app)
-  
-  // 1. Handle GET (Fetch State)
-  if (req.method === 'GET') {
+export default async function handler(request, response) {
+  // Check if KV is configured
+  if (!process.env.KV_REST_API_URL && !process.env.KV_REST_API_TOKEN) {
+    return response.status(500).json({ error: 'KV Database is not linked to this project in Vercel. Please connect a KV database in the Storage tab.' });
+  }
+
+  if (request.method === 'GET') {
     try {
       const state = await kv.get('48h_project_state');
-      return res.status(200).json(state || { epics: [], tasks: [] });
+      return response.status(200).json(state || { epics: [], tasks: [] });
     } catch (error) {
-      return res.status(500).json({ error: 'Failed to fetch from KV.' });
+      console.error('KV Get Error:', error);
+      return response.status(500).json({ error: 'Failed to read from KV database. Check connection.', details: error.message });
     }
   }
 
-  // 3. Handle POST (Save State)
-  if (req.method === 'POST') {
+  if (request.method === 'POST') {
     try {
-      const newState = req.body;
-      await kv.set('48h_project_state', newState);
-      return res.status(200).json({ success: true });
+      const state = request.body;
+      await kv.set('48h_project_state', state);
+      return response.status(200).json({ success: true });
     } catch (error) {
-      return res.status(500).json({ error: 'Failed to save to KV.' });
+      console.error('KV Set Error:', error);
+      return response.status(500).json({ error: 'Failed to write to KV database. Check connection.', details: error.message });
     }
   }
 
-  // 4. Method Not Allowed
-  return res.status(405).json({ error: 'Method Not Allowed' });
+  return response.status(405).json({ error: 'Method Not Allowed' });
 }

@@ -416,7 +416,7 @@
     /* ============================================================
        STATUS TICKER (TOP BAR)
        ============================================================ */
-    function StatusTicker({ tasks, isSyncing }) {
+    function StatusTicker({ tasks, syncStatus }) {
       const wipCount = tasks.filter(t => t.status === 'WIP').length;
       return (
         <header className="status-ticker">
@@ -425,11 +425,9 @@
             <span className={`ticker-value${wipCount >= WIP_LIMIT ? ' critical' : ''}`}>{wipCount}/{WIP_LIMIT}</span>
           </div>
           <div className="status-ticker__right">
-            {isSyncing ? (
-              <span className="sync-status active">SYNCING...</span>
-            ) : (
-              <span className="sync-status">CLOUD SYNCED</span>
-            )}
+            {syncStatus === 'Syncing...' && <span className="sync-status active">SYNCING...</span>}
+            {syncStatus === 'Error' && <span className="sync-status error" style={{color: '#ff4d4d'}}>OFFLINE / ERROR</span>}
+            {syncStatus === 'Idle' && <span className="sync-status">CLOUD SYNCED</span>}
             <span className="ticker-time">48H</span>
           </div>
         </header>
@@ -857,21 +855,28 @@
         return local.length > 0 ? local : legacy;
       });
       const [wipBlocked, setWipBlocked] = React.useState(false);
-      const [isSyncing, setIsSyncing] = React.useState(false);
+      const [syncStatus, setSyncStatus] = React.useState('Syncing...');
       const [loadError, setLoadError] = React.useState(null);
 
       // --- Cloud Sync ---
       const syncToCloud = async (currentEpics, currentTasks) => {
-        setIsSyncing(true);
+        setSyncStatus('Syncing...');
         try {
           const res = await fetch('/api/sync', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ epics: currentEpics, tasks: currentTasks })
           });
-          if (!res.ok) console.warn('Cloud sync failed');
-        } catch (e) { console.error('Cloud sync failed', e); }
-        finally { setIsSyncing(false); }
+          if (!res.ok) {
+            console.warn('Cloud sync failed with status', res.status);
+            setSyncStatus('Error');
+          } else {
+            setSyncStatus('Idle');
+          }
+        } catch (e) { 
+          console.error('Cloud sync failed', e); 
+          setSyncStatus('Error');
+        }
       };
 
       // Persistence & Sync triggers
@@ -899,6 +904,7 @@
           const res = await fetch('/api/sync');
           if (!res.ok) {
             console.warn('Sync API returned status:', res.status);
+            setSyncStatus('Error');
             return;
           }
           const contentType = res.headers.get('content-type');
@@ -907,15 +913,24 @@
             if (data && data.epics && data.epics.length > 0) {
               setEpics(data.epics);
               setTasks(data.tasks);
+              setSyncStatus('Idle');
               console.log('Cloud data loaded successfully.');
             } else {
               console.log('Cloud is empty. Sticking with local data.');
+              // Force local data up to seed the newly connected cloud DB
+              if (epics.length > 0) {
+                await syncToCloud(epics, tasks);
+              } else {
+                setSyncStatus('Idle');
+              }
             }
           } else {
             console.warn('Sync API returned non-JSON:', contentType);
+            setSyncStatus('Error');
           }
         } catch (e) { 
           console.error('Cloud load failed:', e.message);
+          setSyncStatus('Error');
         } finally {
           isInitialLoad.current = false;
         }
@@ -952,7 +967,7 @@
 
       return (
         <div className="app-root">
-          <StatusTicker tasks={tasks} isSyncing={isSyncing} />
+          <StatusTicker tasks={tasks} syncStatus={syncStatus} />
           <main className="main-content">
             {activeTab === 'brain-dump' && (
               <BrainDump 
