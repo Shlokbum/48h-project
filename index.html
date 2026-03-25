@@ -235,6 +235,15 @@
       justify-content: center;
     }
     .task-advance-btn:hover { background: var(--blue); color: #fff; }
+    .task-advance-btn.done-btn {
+      background: #10b981;
+      border-color: #10b981;
+      color: #fff;
+    }
+    .task-advance-btn.done-btn:hover {
+      background: #059669;
+      border-color: #059669;
+    }
 
     /* WIP Blocker */
     .wip-blocker {
@@ -640,7 +649,9 @@
             <span className="task-epic-name" style={{ background: '#000', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.65rem', letterSpacing: '0.08em', fontWeight: '600' }}>
               {epic?.name ?? 'No Epic'}
             </span>
-            <span className={`task-status-pill ${PILL_CLASS[task.status]}`}>{STATUS_LABEL[task.status]}</span>
+            {task.status !== 'WIP' && (
+              <span className={`task-status-pill ${PILL_CLASS[task.status]}`}>{STATUS_LABEL[task.status]}</span>
+            )}
           </div>
           <p className={`task-title${done ? ' done' : ''}`}>{task.title}</p>
           <p className="task-dod"><span className="task-dod-label">DOD —</span> {task.definitionOfDone}</p>
@@ -648,7 +659,7 @@
             <div
               role="button"
               tabIndex="0"
-              className="task-advance-btn"
+              className={`task-advance-btn${next === 'DONE' ? ' done-btn' : ''}`}
               onClick={(e) => { e.stopPropagation(); onStatusChange(task.id, next); }}
               id={`advance-${task.id}`}
             >
