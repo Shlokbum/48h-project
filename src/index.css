@@ -418,12 +418,12 @@ body.wip-flash {
 }
 
 .task-card.wip {
-  background-color: #D3D3D3;
+  background-color: #C4C4C4;
   color: #131313;
 }
 
 .task-card.wip:hover {
-  background-color: #C0C0C0;
+  background-color: #B0B0B0;
 }
 
 .task-card__header {
