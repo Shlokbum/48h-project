@@ -525,13 +525,13 @@ body.wip-flash {
   border-color: #008000;
 }
 .task-advance-btn.wip-btn {
-  background-color: #0096FF;
-  border-color: #0096FF;
+  background-color: #0047AB;
+  border-color: #0047AB;
   color: #fff;
 }
 .task-advance-btn.wip-btn:hover {
-  background-color: #0082e6;
-  border-color: #0082e6;
+  background-color: #003380;
+  border-color: #003380;
 }
 
 /* ============================================================
