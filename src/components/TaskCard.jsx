@@ -35,8 +35,12 @@ export default function TaskCard({ task, epic, onStatusChange, onClick }) {
       style={{ borderLeftColor: epic ? epic.colorHex : 'transparent' }}
     >
       <div className="task-card__header">
-        <span className="task-epic-name">{epic?.name ?? 'No Epic'}</span>
-        <span className={`task-status-pill ${PILL_CLASS[task.status]}`}>{STATUS_LABEL[task.status]}</span>
+        <span className="task-epic-name" style={{ background: '#000', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontSize: '0.65rem', letterSpacing: '0.08em', fontWeight: '600' }}>
+          {epic?.name ?? 'No Epic'}
+        </span>
+        {task.status !== 'WIP' && (
+          <span className={`task-status-pill ${PILL_CLASS[task.status]}`}>{STATUS_LABEL[task.status]}</span>
+        )}
       </div>
 
       <p className={`task-title${done ? ' done' : ''}`}>{task.title}</p>
@@ -57,7 +61,7 @@ export default function TaskCard({ task, epic, onStatusChange, onClick }) {
         <div
           role="button"
           tabIndex="0"
-          className="task-advance-btn"
+          className={`task-advance-btn${next === 'DONE' ? ' done-btn' : ''}${next === 'WIP' ? ' wip-btn' : ''}`}
           onClick={(e) => { e.stopPropagation(); onStatusChange(task.id, next); }}
           id={`advance-${task.id}`}
         >

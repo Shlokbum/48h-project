@@ -245,6 +245,15 @@
       background: #008000;
       border-color: #008000;
     }
+    .task-advance-btn.wip-btn {
+      background: #0096FF;
+      border-color: #0096FF;
+      color: #fff;
+    }
+    .task-advance-btn.wip-btn:hover {
+      background: #0082e6;
+      border-color: #0082e6;
+    }
 
     /* WIP Blocker */
     .wip-blocker {
@@ -667,7 +676,7 @@
             <div
               role="button"
               tabIndex="0"
-              className={`task-advance-btn${next === 'DONE' ? ' done-btn' : ''}`}
+              className={`task-advance-btn${next === 'DONE' ? ' done-btn' : ''}${next === 'WIP' ? ' wip-btn' : ''}`}
               onClick={(e) => { e.stopPropagation(); onStatusChange(task.id, next); }}
               id={`advance-${task.id}`}
             >

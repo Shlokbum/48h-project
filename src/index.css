@@ -520,9 +520,18 @@ body.wip-flash {
   justify-content: center;
 }
 
-.task-advance-btn:hover {
-  background-color: var(--blue);
+.task-advance-btn.done-btn:hover {
+  background-color: #008000;
+  border-color: #008000;
+}
+.task-advance-btn.wip-btn {
+  background-color: #0096FF;
+  border-color: #0096FF;
   color: #fff;
+}
+.task-advance-btn.wip-btn:hover {
+  background-color: #0082e6;
+  border-color: #0082e6;
 }
 
 /* ============================================================
