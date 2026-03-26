@@ -9,6 +9,10 @@ export default function BrainDump({ epics, tasks, onAddEpic, onUpdateEpic, onDel
     return tasks.filter((t) => t.epicId === epicId).length;
   };
 
+  const getDoneTaskCount = (epicId) => {
+    return tasks.filter((t) => t.epicId === epicId && t.status === 'DONE').length;
+  };
+
   return (
     <div className="view" id="brain-dump-view">
       <div className="view-header">
@@ -31,6 +35,7 @@ export default function BrainDump({ epics, tasks, onAddEpic, onUpdateEpic, onDel
             key={epic.id}
             epic={epic}
             taskCount={getTaskCount(epic.id)}
+            doneTasks={getDoneTaskCount(epic.id)}
             onClick={setEditingEpic}
           />
         ))}
